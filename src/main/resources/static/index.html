@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <base href="/">
+
+        <title>early folding residue predictor</title>
+
+        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link href="http://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic" media="screen" rel="stylesheet" type="text/css">
+
+        <link rel="stylesheet" href="app.css">
+    </head>
+    <body data-ng-app="efr" data-ng-controller="ViewController as view">
+        <div id="content">
+            <div id="header" class="content-box">
+                <h1>Early Folding Residues</h1>
+                early folding - what, why, <a href="http://start2fold.eu/">links</a>
+            </div>
+
+            <div id="search" class="content-box">
+                <h1>Search</h1>
+
+                <div class="flex">
+                    <div>
+                        by pdbid
+                    </div>
+                    <div>
+                        by file upload
+                    </div>
+                </div>
+                <form ng-submit="$event.preventDefault()" name="searchForm">
+                    <md-content class="md-padding">
+                        <p>Select a PDB-chain:</p>
+                        <md-autocomplete flex
+                                         md-input-name="autocompleteField"
+                                         md-selected-item="chain"
+                                         md-search-text="searchText"
+                                         md-items="item in querySearch(searchText)"
+                                         md-floating-label="PDB-id">
+                            <md-item-template>
+                                <span md-highlight-text="searchText">{{item}}</span>
+                            </md-item-template>
+                        </md-autocomplete>
+                    </md-content>
+                    <!-- https://stackoverflow.com/questions/31867194/file-upload-with-angular-material -->
+                    <md-content class="md-padding">
+                        <p>Upload custom 3D structure:</p>
+                        <choose-file layout="row">
+                            <input id="fileInput" type="file" class="ng-hide">
+                            <md-input-container flex class="md-block">
+                                <input type="text"
+                                       ng-model="filename"
+                                       ng-readonly="true"
+                                       aria-label="upload">
+                                <div class="hint">Select your file</div>
+                            </md-input-container>
+                            <div>
+                                <md-button id="uploadButton" class="md-fab md-mini">
+                                    <md-icon class="material-icons">attach_file</md-icon>
+                                </md-button>
+                            </div>
+                        </choose-file>
+                    </md-content>
+                </form>
+            </div>
+
+            <div id="structure-description" class="content-box" data-ng-show="valid">
+                <h1>Structure Description</h1>
+                pdbid, title, chains, residues, links
+            </div>
+
+            <div id="results" class="flex" data-ng-show="valid">
+                <div id="structure" class="content-box">
+                    ngl instance - render structure - highlight efr
+                </div>
+
+                <div id="raw-data" class="content-box">
+                    csv-esque representation, download
+                </div>
+            </div>
+
+            <div id="error" class="content-box" data-ng-show="error">
+                <h1>An error occurred!</h1>
+
+                {{errorMessage}}
+            </div>
+        </div>
+
+        <script src="//code.jquery.com/jquery-2.2.4.js" integrity="sha256-iT6Q9iMJYuQiMWNd9lDyBUStIq/8PuOW33aOqmvFpqI=" crossorigin="anonymous"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-route.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-resource.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-animate.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.js"></script>
+        <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.js"></script>
+        <script src="app.js"></script>
+        <script src="ngl.js"></script>
+    </body>
+</html>

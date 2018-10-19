@@ -1,0 +1,53 @@
+html, body {
+    background-color: #343640;
+}
+
+html, body, div, a, form {
+    padding: 0;
+    margin: 0;
+}
+
+#content {
+    margin: 0 auto;
+    width: 1200px;
+    font-family: 'PT Sans', sans-serif;
+    font-size: 16px;
+    line-height: 1.5;
+    word-wrap: break-word;
+}
+
+.content-box {
+    border-radius: 6px;
+    margin: 30px 0;
+    overflow: hidden;
+    border-collapse: separate;
+    box-sizing: border-box;
+    background-color:#ffffff;
+    color: #1a1c21;
+    padding: 6px;
+}
+
+h1 {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+    padding: 0;
+}
+
+a, a:active, a:hover, a:visited {
+    text-decoration: none;
+    color: #f64c3f;
+}
+
+.flex {
+    display: flex;
+}
+
+.flex > div {
+    width: 585px;
+    margin: 0;
+}
+
+.flex > div:first-of-type {
+    margin: 0 30px 0 0 !important;
+}
