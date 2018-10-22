@@ -10,23 +10,18 @@ import de.bioforscher.jstructure.feature.interaction.PLIPRestServiceQuery;
 import de.bioforscher.jstructure.feature.loopfraction.LoopFraction;
 import de.bioforscher.jstructure.feature.loopfraction.LoopFractionCalculator;
 import de.bioforscher.jstructure.feature.sse.GenericSecondaryStructure;
-import de.bioforscher.jstructure.model.identifier.ChainIdentifier;
-import de.bioforscher.jstructure.model.identifier.IdentifierFactory;
-import de.bioforscher.jstructure.model.identifier.ProteinIdentifier;
+import de.bioforscher.jstructure.model.feature.ComputationException;
 import de.bioforscher.jstructure.model.structure.Chain;
 import de.bioforscher.jstructure.model.structure.Structure;
-import de.bioforscher.jstructure.model.structure.StructureParser;
 import de.bioforscher.jstructure.model.structure.aminoacid.AminoAcid;
 import de.bioforscher.jstructure.model.structure.aminoacid.Proline;
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import weka.classifiers.Classifier;
 import weka.core.*;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -34,6 +29,7 @@ import java.util.StringJoiner;
 import java.util.stream.Collectors;
 
 public class EarlyFoldingClassifier {
+    private static final Logger logger = LoggerFactory.getLogger(EarlyFoldingClassifier.class);
     private final EgorAgreementCalculator EGOR_AGREEMENT_CALCULATOR = new EgorAgreementCalculator();
     private final LoopFractionCalculator LOOP_FRACTION_CALCULATOR = new LoopFractionCalculator();
     private final AccessibleSurfaceAreaCalculator ACCESSIBLE_SURFACE_AREA_CALCULATOR = new AccessibleSurfaceAreaCalculator();
@@ -58,71 +54,52 @@ public class EarlyFoldingClassifier {
         return INSTANCE;
     }
 
-    public void process(Structure structure, Path outputPath) throws IOException {
-        // report structure characteristics
-        System.out.println("structure: " + structure.getProteinIdentifier().getFullName() + "\n" +
-                "chains: " + structure.chainsWithAminoAcids()
-                .map(Chain::getChainIdentifier)
-                .map(ChainIdentifier::getChainId)
-                .collect(Collectors.toList()) + "\n" +
-                "total residues: " + structure.aminoAcids().count());
-
-        System.out.println();
+    public EarlyFoldingClassification process(Chain chain) {
+        Structure structure = chain.getParentStructure();
 
         // compute features
-        System.out.println("computing residue-level features");
+        logger.info("computing residue-level features");
 
         // start with PLIP to fail fast
-        System.out.println("querying PLIP-REST-Service");
+        logger.info("querying PLIP-REST-Service");
         try {
             // try to annotate by standard routine
             PLIP_INTRA_MOLECULAR_ANNOTATOR.process(structure);
-            System.out.println("fetched PLIP contacts");
+            logger.info("fetched PLIP contacts");
         } catch (Exception e1) {
             try {
                 // potential non-pdb-entry, try to compute on-the-fly
-                structure.chainsWithAminoAcids().forEach(chain -> {
-                    Document document = PLIPRestServiceQuery.calculateIntraChainDocument(chain);
-                    PLIP_INTRA_MOLECULAR_ANNOTATOR.process(chain, document);
-                });
-                System.out.println("computed PLIP contacts");
+                Document document = PLIPRestServiceQuery.calculateIntraChainDocument(chain);
+                PLIP_INTRA_MOLECULAR_ANNOTATOR.process(chain, document);
+                logger.info("computed PLIP contacts");
             } catch (Exception e2) {
-                System.out.println("failed: could not compute PLIP contacts");
-                e2.printStackTrace();
-                return;
+                throw new ComputationException("could not compute polymer interactions for " + chain.getChainIdentifier());
             }
         }
 
-        System.out.println("computing energy profiles");
+        logger.info("computing energy profiles");
         EGOR_AGREEMENT_CALCULATOR.process(structure);
 
-        System.out.println("annotating secondary structure elements");
+        logger.info("annotating secondary structure elements");
         LOOP_FRACTION_CALCULATOR.process(structure);
 
-        System.out.println("computing relative accessible surface area");
+        logger.info("computing relative accessible surface area");
         ACCESSIBLE_SURFACE_AREA_CALCULATOR.process(structure);
 
         // assign feature vectors
-        structure.aminoAcids().forEach(RawFeatureVector::assignRawFeatureVector);
+        //TODO residue graph operations take long/crash
+        logger.info("creating feature vectors");
+        chain.aminoAcids().forEach(RawFeatureVector::assignRawFeatureVector);
 
         // smooth feature vectors
-        structure.chainsWithAminoAcids().forEach(chain -> {
-            List<AminoAcid> aminoAcids = chain.aminoAcids().collect(Collectors.toList());
-            aminoAcids.forEach(aminoAcid -> {
-                SmoothedFeatureVector.assignSmoothedFeatureVector(aminoAcids, aminoAcid);
-            });
-        });
+        logger.info("smoothing feature vectors");
+        List<AminoAcid> aminoAcids = chain.aminoAcids().collect(Collectors.toList());
+        aminoAcids.forEach(aminoAcid -> SmoothedFeatureVector.assignSmoothedFeatureVector(aminoAcids, aminoAcid));
 
         // classify each residue
         StringJoiner outputJoiner = new StringJoiner(System.lineSeparator());
         // print header
-        outputJoiner.add("structure: '" + structure.getProteinIdentifier().getFullName() + "'")
-                .add("chains: " + structure.chainsWithAminoAcids()
-                        .map(Chain::getChainIdentifier)
-                        .map(ChainIdentifier::getChainId)
-                        .collect(Collectors.toList()))
-                .add("total residues: " + structure.aminoAcids().count())
-                .add("chain,res,aa,sse,energy,egor,sse_size,loop_fraction,rasa,plip_local_contacts," +
+        outputJoiner.add("chain,res,aa,sse,energy,egor,sse_size,loop_fraction,rasa,plip_local_contacts," +
                         "plip_local_hbonds,plip_local_hydrophobic,plip_local_backbone,plip_long_range_contacts," +
                         "plip_long_range_hbonds,plip_long_range_hydrophobic,plip_long_range_backbone," +
                         "plip_betweenness,plip_closeness,plip_clusteringcoefficient,plip_hbonds_betweenness," +
@@ -130,80 +107,52 @@ public class EarlyFoldingClassifier {
                         "plip_hydrophobic_closeness,plip_hydrophobic_clusteringcoefficient,conv_betweenness," +
                         "conv_closeness,conv_clusteringcoefficient,plip_neighborhoods,conv_neighborhoods,prob,folds");
 
-        structure.chainsWithAminoAcids()
-                .forEach(chain -> {
-                    List<String> output = structure.aminoAcids()
-                            .map(aminoAcid -> {
-                                boolean isProline = aminoAcid instanceof Proline;
+        logger.info("classifying amino acids");
+        List<String> output = chain.aminoAcids()
+                .map(aminoAcid -> {
+                    boolean isProline = aminoAcid instanceof Proline;
 
-                                SmoothedFeatureVector smoothedFeatureVector = aminoAcid.getFeature(SmoothedFeatureVector.class);
-                                double loopFraction = aminoAcid.getFeature(LoopFraction.class).getLoopFraction();
-                                Instance instance = createInstance(smoothedFeatureVector, loopFraction);
-                                double prob = 0.0;
-                                if (!isProline) {
-                                    try {
-                                        prob = model.distributionForInstance(normalize(instance))[0];
-                                    } catch (Exception e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-
-                                StringJoiner lineJoiner = new StringJoiner(",");
-                                lineJoiner.add(aminoAcid.getParentChain().getChainIdentifier().getChainId())
-                                        .add(aminoAcid.getResidueIdentifier().toString())
-                                        .add(aminoAcid.getOneLetterCode())
-                                        .add(aminoAcid.getFeature(GenericSecondaryStructure.class).getSecondaryStructure().getReducedRepresentation());
-                                for (int i = 0; i < instance.numAttributes() - 1; i++) {
-                                    lineJoiner.add(StandardFormat.format(instance.value(i)));
-                                }
-                                lineJoiner.add(StandardFormat.format(prob));
-                                return lineJoiner.toString();
-                            })
-                            .sorted(Comparator.comparingDouble((String line) -> Double.valueOf(line.split(",")[line.split(",").length - 1])).reversed())
-                            .collect(Collectors.toList());
-
-                    int numberOfEarlyFoldingResidues = (int) (0.15 * (int) chain.aminoAcids().count());
-                    int counter = 0;
-                    for(int i = 0; i < chain.aminoAcids().count(); i++) {
-                        outputJoiner.add(output.get(i) + "," + (counter < numberOfEarlyFoldingResidues ? "early" : "late"));
-                        counter++;
+                    SmoothedFeatureVector smoothedFeatureVector = aminoAcid.getFeature(SmoothedFeatureVector.class);
+                    double loopFraction = aminoAcid.getFeature(LoopFraction.class).getLoopFraction();
+                    Instance instance = createInstance(smoothedFeatureVector, loopFraction);
+                    double prob = 0.0;
+                    if (!isProline) {
+                        try {
+                            prob = model.distributionForInstance(normalize(instance))[0];
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
-                });
 
-        // write output
-        System.out.println("writing output to " + outputPath);
-        Files.write(outputPath, outputJoiner.toString().getBytes());
-    }
+                    StringJoiner lineJoiner = new StringJoiner(",");
+                    lineJoiner.add(aminoAcid.getParentChain().getChainIdentifier().getChainId())
+                            .add(aminoAcid.getResidueIdentifier().toString())
+                            .add(aminoAcid.getOneLetterCode())
+                            .add(aminoAcid.getFeature(GenericSecondaryStructure.class).getSecondaryStructure().getReducedRepresentation());
+                    for (int i = 0; i < instance.numAttributes() - 1; i++) {
+                        lineJoiner.add(StandardFormat.format(instance.value(i)));
+                    }
+                    lineJoiner.add(StandardFormat.format(prob));
+                    return lineJoiner.toString();
+                })
+                .sorted(Comparator.comparingDouble((String line) -> Double.valueOf(line.split(",")[line.split(",").length - 1])).reversed())
+                .collect(Collectors.toList());
 
-    public static void main(String[] args) throws IOException {
-        if(args.length != 2) {
-            System.out.println("incorrect number of arguments\n" +
-                    "usage: java -jar efr.jar input output\n" +
-                    "input: either '/a/path/to/some/file.pdb' or '1pdb' a pdb-id\n" +
-                    "output: either '/a/absolute/path/output.csv' or 'relative.csv' a relative path");
-            return;
+        List<String> earlyFoldingResidues = new ArrayList<>();
+        int numberOfEarlyFoldingResidues = (int) (0.15 * (int) chain.aminoAcids().count());
+        int counter = 0;
+        for(int i = 0; i < chain.aminoAcids().count(); i++) {
+            boolean earlyFolding = counter < numberOfEarlyFoldingResidues;
+            outputJoiner.add(output.get(i) + "," + (earlyFolding ? "early" : "late"));
+            counter++;
+            if(earlyFolding) {
+                String[] split = output.get(i).split(",");
+                earlyFoldingResidues.add(split[2] + "-" + split[1]);
+            }
         }
 
-        String input = args[0];
-        String output = args[1];
-        Path outputPath = Paths.get(output);
-        System.out.println();
-
-        // parse structure - classic flow-control by exceptions
-        Structure structure;
-        try {
-            ProteinIdentifier pdbId = IdentifierFactory.createProteinIdentifier(input);
-            structure = StructureParser.fromProteinIdentifier(pdbId).parse();
-            System.out.println("parsing structure by pdb-id: '" + pdbId + "'");
-        } catch (Exception e) {
-            System.out.println("parsing structure from file at: '" + input + "'");
-            Path inputPath = Paths.get(input);
-            structure = StructureParser.fromPath(inputPath).parse();
-        }
-        System.out.println();
-
-        EarlyFoldingClassifier instance = getInstance();
-        instance.process(structure, outputPath);
+        return new EarlyFoldingClassification(outputJoiner.toString(),
+                earlyFoldingResidues);
     }
 
     private static final double[][] NORMALIZATION = new double[][] {
@@ -324,5 +273,23 @@ public class EarlyFoldingClassifier {
 
     private double round(double value) {
         return (double) Math.round(value * 10000d) / 10000d;
+    }
+
+    class EarlyFoldingClassification {
+        private final String csvRepresentation;
+        private final List<String> earlyFoldingResidues;
+
+        public EarlyFoldingClassification(String csvRepresentation, List<String> earlyFoldingResidues) {
+            this.csvRepresentation = csvRepresentation;
+            this.earlyFoldingResidues = earlyFoldingResidues;
+        }
+
+        public String getCsvRepresentation() {
+            return csvRepresentation;
+        }
+
+        public List<String> getEarlyFoldingResidues() {
+            return earlyFoldingResidues;
+        }
     }
 }

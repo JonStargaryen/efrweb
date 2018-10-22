@@ -18,23 +18,43 @@
     </head>
     <body data-ng-app="efr" data-ng-controller="ViewController as view">
         <div id="content">
-            <div id="header" class="content-box">
-                <h1>Early Folding Residues</h1>
-                early folding - what, why, <a href="http://start2fold.eu/">links</a>
+            <div id="header" class="content-box md-padding">
+                <h1>Prediction of Early Folding Residues</h1>
+
+                <p>Protein folding is a little understood process. Interestingly, folding happens stepwise and a defined set of
+                    residues tends to initiate the process by folding early. Experimental data on early folding residues is provided
+                    by the <a target="_blank" href="http://start2fold.eu/">Start2Fold</a> database. However, for most protein structure no data
+                    is available.</p>
+
+                <p>This is why we developed this resource which predicts the position of early folding residues from structure
+                    data. Specify either a PDB-id or upload your structure of interest. Several features are computed to describe
+                    each residue in the structure and a trained model is used to predict individual residues as early or late folding.</p>
+
+                <p>This demonstrates how a rather simple machine learning technique, called generalized matrix learning vector
+                    quantization (GMLVQ), can be employed to create a sparse, interpretable classification model. The algorithm
+                    is provided as plug-in of the popular <a target="_blank" href="https://www.cs.waikato.ac.nz/ml/weka/">Weka</a> machine
+                    learning toolbox.</p>
+
+                Please find...
+                <div class="flex">
+                    <md-content>
+                        <ul>
+                            <li>the preprint at: <a target="_blank" href="https://www.biorxiv.org/content/early/2018/08/07/381483">bioRxiv</a></li>
+                            <li>the source code at: <a target="_blank" href="https://github.com/JonStargaryen/gmlvq">GitHub</a></li>
+                        </ul>
+                    </md-content>
+                    <md-content>
+                        <ul>
+                            <li>the compiled Weka plug-in at: <a target="_blank" href="https://zenodo.org/record/1326272">Zenedo</a></li>
+                            <li>the NGL viewer used for visualization at: <a target="_blank" href="https://github.com/arose/ngl">GitHub</a></li>
+                        </ul>
+                    </md-content>
+                </div>
+
             </div>
 
             <div id="search" class="content-box">
-                <h1>Search</h1>
-
-                <div class="flex">
-                    <div>
-                        by pdbid
-                    </div>
-                    <div>
-                        by file upload
-                    </div>
-                </div>
-                <form ng-submit="$event.preventDefault()" name="searchForm">
+                <form ng-submit="$event.preventDefault()" name="searchForm" class="flex">
                     <md-content class="md-padding">
                         <p>Select a PDB-chain:</p>
                         <md-autocomplete flex
@@ -70,25 +90,45 @@
                 </form>
             </div>
 
-            <div id="structure-description" class="content-box" data-ng-show="valid">
-                <h1>Structure Description</h1>
-                pdbid, title, chains, residues, links
-            </div>
-
             <div id="results" class="flex" data-ng-show="valid">
                 <div id="structure" class="content-box">
-                    ngl instance - render structure - highlight efr
+                    <div id="ngl"></div>
                 </div>
 
-                <div id="raw-data" class="content-box">
-                    csv-esque representation, download
+                <div>
+                    <div id="structure-description" class="content-box md-padding" style="margin: 0">
+                        <h2>Structure Description</h2>
+                        PDB-ID: <a target="_blank" data-ng-href="https://www.rcsb.org/structure/{{protein.pdbId}}">{{protein.pdbId}}</a><br />
+                        Chain-ID: {{protein.chainId}}<br />
+                        Title: {{protein.title}}
+                    </div>
+
+                    <div id="raw-data" class="content-box md-padding" style="margin: 30px 0 0 0">
+                        <h2>Early Folding Residues</h2>
+
+                        <div id="residue-panel">
+                            <span data-ng-repeat="efr in protein.earlyFoldingResidues"
+                                  data-ng-mouseover="select(efr)"
+                                  data-ng-mouseleave="deselect()">
+                                {{efr}}
+                            </span>
+                        </div>
+
+                        <a download="classification.csv" data-ng-href="{{url}}">Download raw data in CSV format.</a>
+                    </div>
                 </div>
             </div>
 
-            <div id="error" class="content-box" data-ng-show="error">
-                <h1>An error occurred!</h1>
+            <div id="error" class="content-box md-padding" data-ng-show="error">
+                <h2>An error occurred!</h2>
 
                 {{errorMessage}}
+            </div>
+
+            <div id="processing" class="content-box md-padding" data-ng-show="processing">
+                <h2>Please wait.</h2>
+
+                Your query is being processed by the server.
             </div>
         </div>
 
