@@ -24,6 +24,7 @@
             $scope.error = false;
             // optional error message
             $scope.errorMessage = '';
+            $scope.errorException = '';
             // process indicator
             $scope.processing = false;
 
@@ -40,39 +41,37 @@
 
             // auto-complete user input
             $scope.querySearch = function querySearch(query) {
-                //TODO ignore queries which are too short and just slow down server and client
-                // if(query.length < 2) {
-                //     return;
-                // }
+                if(query.length < 3) {
+                    return [];
+                }
                 return ViewService.complete(query).then(function(response) {
                     return response.data;
                 }, function(response) {
-                    //TODO error handling
-                    // $scope.errorMessage = response.data;
-                    // $scope.error = true;
+                    $scope.errorException = response.data.exception;
+                    $scope.errorMessage = "failed to autocomplete by server: " + response.data.message;
+                    $scope.error = true;
                 });
             };
 
             // watch for valid change of selected chain, if so: auto-submit form and update view
             $scope.$watch('chain', function(newValue, oldValue) {
-                if (newValue !== null) {
+                if (newValue !== null && newValue.length === 6) {
                     console.log('updating view to ' + $scope.chain);
                     $scope.valid = false;
                     $scope.processing = true;
                     ViewService.handleStructureQuery($scope.chain).then(function (response) {
                         $scope.protein = response.data;
                     }, function (response) {
-                        //TODO error handling
-                        // $scope.errorMessage = response.data;
-                        // $scope.error = true;
+                        $scope.errorException = response.data.exception;
+                        $scope.errorMessage = response.data.message;
+                        $scope.error = true;
+                        $scope.processing = false;
                     });
                 }
             });
 
             $scope.$watch('protein', function(newValue, oldValue) {
-                console.log(newValue.pdbId);
                 if(newValue !== null && newValue !== undefined) {
-                    // console.log($scope.protein.pdbId);
                     $scope.valid = true;
 
                     var blob = new Blob([$scope.protein.csvRepresentation], { type : 'text/plain' });
@@ -129,18 +128,17 @@
         function($http) {
             return {
                 complete : function(query) {
-                    return $http.get('/api/complete/' + query);
+                    return $http.get('efpred/api/complete/' + query);
                 },
                 handleStructureQuery : function(chain) {
-                    return $http.get('/api/id/' + chain);
+                    return $http.get('efpred/api/id/' + chain);
                 },
                 submitFile : function(file) {
                     return $http({
-                        url: '/api/submit',
-                        method: 'POST',
-                        data: {'file': file},
-                        headers: {'Content-Type': undefined},
-                        transformResponse: undefined
+                        url : 'efpred/api/submit',
+                        method : 'POST',
+                        data : { 'file': file },
+                        headers : { 'Content-Type' : undefined }
                     });
                 }
             }
@@ -162,14 +160,17 @@
                 input.bind('change', function() {
                     var fr = new FileReader();
                     fr.onload = function(event) {
+                        console.log('updating view to uploaded structure');
+                        parentScope.chain = '';
                         parentScope.valid = false;
                         parentScope.processing = true;
                         ViewService.submitFile(event.target.result).then(function(response) {
                             parentScope.protein = response.data;
                         }, function(response) {
-                            //TODO error handling
-                            // scope.errorMessage = response.data;
-                            // scope.error = true;
+                            parentScope.errorException = response.data.exception;
+                            parentScope.errorMessage = response.data.message;
+                            parentScope.error = true;
+                            parentScope.processing = false;
                         });
                         parentScope.$apply();
                     };

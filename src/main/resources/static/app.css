@@ -30,15 +30,17 @@ html, body, div, a, form {
 h1, h2 {
     font-weight: bold;
     margin: 0;
-    padding: 0 0 6px 0;
+
 }
 
 h1 {
     font-size: 28px;
+    padding: 0 0 10px 0;
 }
 
 h2 {
     font-size: 18px;
+    padding: 0 0 6px 0;
 }
 
 a, a:visited, a:link, a:hover, a:active {

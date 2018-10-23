@@ -11,10 +11,13 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.PostConstruct;
 import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RestController
 @RequestMapping(value = "/api/", method = RequestMethod.GET)
@@ -27,18 +30,47 @@ public class EarlyFoldingController {
      *  removed
      */
     private static final String FILE_ENCODING_FLAG = "base64,";
+    private Path pdbDirectory;
     private Protein exampleProtein;
-    private List<String> chainIds;
+    /**
+     * collection of PDB chain ids: maps both chars in the middle to all chain ids in this bin
+     * e.g.: ac -> [1acj_A, 3ace_A, 3ace_B]
+     */
+    private Map<String, List<String>> chainIds;
     private EarlyFoldingClassifier earlyFoldingClassifier;
 
     @PostConstruct
     public void activate() {
-        //TODO replace with actual data
-        this.chainIds = Stream.of("1acj_A", "1c0a_A", "1k1i_A", "4ins_A", "2qho_A")
-                .collect(Collectors.toList());
+        // specify pdb directory
+        this.pdbDirectory = Paths.get("/var/local/pdb/");
+        StructureParser.OptionalSteps.setLocalPdbDirectory(pdbDirectory);
+
+        //TODO rsync PDB distribution on server
+
+        // initialize all chain ids from preprocessed file (mere lines of ids in format: 1acj_A)
+        logger.info("initializing chain id list for auto-completion of user input");
+        try {
+            try(InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("data/chainids.dat")) {
+                try(InputStreamReader inputStreamReader = new InputStreamReader(inputStream)) {
+                    try (BufferedReader bufferedReader = new BufferedReader(inputStreamReader)) {
+                        chainIds = bufferedReader.lines()
+                                .collect(Collectors.groupingBy(chainId -> chainId.substring(1, 3)));
+                    }
+                }
+            }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        logger.info("registered {} valid amino acid chains",
+                chainIds.values()
+                        .stream()
+                        .mapToInt(Collection::size)
+                        .sum());
+
         this.earlyFoldingClassifier = EarlyFoldingClassifier.getInstance();
 
         // create example data container
+        logger.info("creating example data {}", EXAMPLE_DATA_ID);
         String[] exampleSplit = EXAMPLE_DATA_ID.split("_");
         Chain chain = StructureParser.fromPdbId(exampleSplit[0]).parse().select().chainId(exampleSplit[1]).asChain();
         List<String> csvLines;
@@ -115,12 +147,11 @@ public class EarlyFoldingController {
 
     @RequestMapping(value = "/complete/{query}", method = RequestMethod.GET)
     public List<String> complete(@PathVariable String query) {
-        List<String> matchingChainIds = chainIds.stream()
+        String middlePart = query.substring(1, 3);
+
+        return chainIds.get(middlePart)
+                .stream()
                 .filter(chainId -> chainId.startsWith(query))
                 .collect(Collectors.toList());
-        logger.info("completed search text {} to {}",
-                query,
-                matchingChainIds);
-        return matchingChainIds;
     }
 }

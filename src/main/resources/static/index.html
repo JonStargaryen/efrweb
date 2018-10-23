@@ -14,7 +14,7 @@
         <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
         <link href="http://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic" media="screen" rel="stylesheet" type="text/css">
 
-        <link rel="stylesheet" href="app.css">
+        <link rel="stylesheet" href="efpred/app.css">
     </head>
     <body data-ng-app="efr" data-ng-controller="ViewController as view">
         <div id="content">
@@ -22,7 +22,7 @@
                 <h1>Prediction of Early Folding Residues</h1>
 
                 <p>Protein folding is a little understood process. Interestingly, folding happens stepwise and a defined set of
-                    residues tends to initiate the process by folding early. Experimental data on early folding residues is provided
+                    residues initiates the process by folding early. Experimental data on early folding residues is provided
                     by the <a target="_blank" href="http://start2fold.eu/">Start2Fold</a> database. However, for most protein structure no data
                     is available.</p>
 
@@ -70,7 +70,7 @@
                     </md-content>
                     <!-- https://stackoverflow.com/questions/31867194/file-upload-with-angular-material -->
                     <md-content class="md-padding">
-                        <p>Upload custom 3D structure:</p>
+                        <p>Upload custom 3D structure (only the first chain is considered):</p>
                         <choose-file layout="row">
                             <input id="fileInput" type="file" class="ng-hide">
                             <md-input-container flex class="md-block">
@@ -120,7 +120,7 @@
             </div>
 
             <div id="error" class="content-box md-padding" data-ng-show="error">
-                <h2>An error occurred!</h2>
+                <h2>An {{errorException}} occurred!</h2>
 
                 {{errorMessage}}
             </div>
@@ -128,7 +128,8 @@
             <div id="processing" class="content-box md-padding" data-ng-show="processing">
                 <h2>Please wait.</h2>
 
-                Your query is being processed by the server.
+                Your query is being processed by the server. This can take some minutes for large protein chains. The page
+                will automatically display results once ready.
             </div>
         </div>
 
@@ -141,7 +142,7 @@
         <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.js"></script>
         <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
         <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.js"></script>
-        <script src="app.js"></script>
-        <script src="ngl.js"></script>
+        <script src="efpred/app.js"></script>
+        <script src="efpred/ngl.js"></script>
     </body>
 </html>
