@@ -42,7 +42,7 @@ public class EarlyFoldingController {
     @PostConstruct
     public void activate() {
         // specify pdb directory
-        this.pdbDirectory = Paths.get("/var/local/pdb/");
+        this.pdbDirectory = Paths.get("/srv/pdb/data/structures/divided/pdb/");
         StructureParser.OptionalSteps.setLocalPdbDirectory(pdbDirectory);
 
         //TODO rsync PDB distribution on server
