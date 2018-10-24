@@ -47,9 +47,14 @@
                 return ViewService.complete(query).then(function(response) {
                     return response.data;
                 }, function(response) {
-                    $scope.errorException = response.data.exception;
-                    $scope.errorMessage = "failed to autocomplete by server: " + response.data.message;
-                    $scope.error = true;
+                    // case when backend works correctly and user input does not match any chain id
+                    if(response.data.exception === 'NullPointerException') {
+                        return [];
+                    } else {
+                        $scope.errorException = response.data.exception;
+                        $scope.errorMessage = "failed to autocomplete by server: " + response.data.message;
+                        $scope.error = true;
+                    }
                 });
             };
 

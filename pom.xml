@@ -50,10 +50,16 @@
             <artifactId>gmlvq</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
-
+        <!-- deployment-specific to run war on biosciences tomcat -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
+        <finalName>efpred</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
