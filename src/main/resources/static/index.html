@@ -6,54 +6,32 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <base href="/">
 
-        <title>early folding residue predictor</title>
+        <title>Early Folding Residue Predictor</title>
 
-        <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
+        <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.min.css">
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
         <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.5.0/css/font-awesome.min.css">
-        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-        <link href="http://fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic" media="screen" rel="stylesheet" type="text/css">
+        <link href="//fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link href="//fonts.googleapis.com/css?family=PT+Sans:400,700,400italic,700italic" media="screen" rel="stylesheet" type="text/css">
 
         <link rel="stylesheet" href="efpred/app.css">
     </head>
     <body data-ng-app="efr" data-ng-controller="ViewController as view">
         <div id="content">
             <div id="header" class="content-box md-padding">
-                <h1>Prediction of Early Folding Residues</h1>
+                <h1>Early Folding Residue Predictor</h1>
 
-                <p>Protein folding is a little understood process. Interestingly, folding happens stepwise and a defined set of
+                <p>Protein folding is a poorly understood process. Interestingly, folding happens stepwise and a defined set of
                     residues initiates the process by folding early. Experimental data on early folding residues is provided
-                    by the <a target="_blank" href="http://start2fold.eu/">Start2Fold</a> database. However, for most protein structure no data
-                    is available.</p>
+                    by the <a target="_blank" href="http://start2fold.eu/">Start2Fold</a> database. However, for most protein structures
+                    no data is available.</p>
 
                 <p>This is why we developed this resource which predicts the position of early folding residues from structure
                     data. Specify either a PDB-ID or upload your structure of interest. Several features are computed to describe
                     each residue in the structure and a trained model is used to predict individual residues as early or late folding.</p>
-
-                <p>This demonstrates how a rather simple machine learning technique, called generalized matrix learning vector
-                    quantization (GMLVQ), can be employed to create a sparse, interpretable classification model. The algorithm
-                    is provided as plug-in of the popular <a target="_blank" href="https://www.cs.waikato.ac.nz/ml/weka/">Weka</a> machine
-                    learning toolbox.</p>
-
-                Please find...
-                <div class="flex">
-                    <md-content>
-                        <ul>
-                            <li>the preprint at: <a target="_blank" href="https://www.biorxiv.org/content/early/2018/08/07/381483">bioRxiv</a></li>
-                            <li>the source code at: <a target="_blank" href="https://github.com/JonStargaryen/gmlvq">GitHub</a></li>
-                        </ul>
-                    </md-content>
-                    <md-content>
-                        <ul>
-                            <li>the compiled Weka plug-in at: <a target="_blank" href="https://zenodo.org/record/1326272">Zenedo</a></li>
-                            <li>the NGL viewer used for visualization at: <a target="_blank" href="https://github.com/arose/ngl">GitHub</a></li>
-                        </ul>
-                    </md-content>
-                </div>
-
             </div>
 
-            <div id="search" class="content-box">
+            <div id="search" class="content-box" data-ng-cloak>
                 <form ng-submit="$event.preventDefault()" name="searchForm" class="flex">
                     <md-content class="md-padding">
                         <p>Select a PDB-chain:</p>
@@ -90,7 +68,7 @@
                 </form>
             </div>
 
-            <div id="results" class="flex" data-ng-show="valid">
+            <div id="results" class="flex" data-ng-show="valid" data-ng-cloak>
                 <div id="structure" class="content-box">
                     <div id="ngl"></div>
                 </div>
@@ -106,30 +84,116 @@
                     <div id="raw-data" class="content-box md-padding" style="margin: 30px 0 0 0">
                         <h2>Early Folding Residues</h2>
 
-                        <div id="residue-panel">
+                        <p id="residue-panel">
                             <span data-ng-repeat="efr in protein.earlyFoldingResidues"
                                   data-ng-mouseover="select(efr)"
                                   data-ng-mouseleave="deselect()">
                                 {{efr}}
                             </span>
-                        </div>
+                        </p>
+
+                        <p>Early folding residues are rendered in <span style="text-shadow: 1px 0 0 #176fc1; color: #176fc1;">blue</span> in the structure on the left. Hover over the name of
+                            individual early folding residues listed above to see their position in the three-dimensional structure.</p>
 
                         <a download="classification.csv" data-ng-href="{{url}}">Download raw data in CSV format.</a>
                     </div>
                 </div>
             </div>
 
-            <div id="error" class="content-box md-padding" data-ng-show="error">
-                <h2>An {{errorException}} occurred!</h2>
+            <div id="error" class="content-box md-padding" data-ng-show="error" data-ng-cloak>
+                <div style="background-color: rgba(246, 76, 63, 0.6);">
+                    <h2>An {{errorException}} occurred!</h2>
 
-                {{errorMessage}}
+                    {{errorMessage}}
+                </div>
             </div>
 
-            <div id="processing" class="content-box md-padding" data-ng-show="processing">
+            <div id="processing" class="content-box md-padding" data-ng-show="processing" data-ng-cloak>
                 <h2>Please wait.</h2>
 
                 Your query is being processed by the server. This can take some minutes for large protein chains. The page
                 will automatically display results once ready.
+            </div>
+
+            <div class="content-box md-padding">
+                <h2>Details</h2>
+
+                During protein folding, the denatured protein chain passes the transition state and adopts its native conformation.
+                Early folding residues form local stable structures early during the folding process by interacting with sequentially
+                close residues. Early folding residues tend to interact with an increased number of other residues in the native structure.
+                What causes some residues to fold early is unclear.
+
+                <img src="efpred/folding-workflow.png" alt="schematic representation of folding process"/>
+
+                <p>The presented classifier for early folding residues demonstrates how an easily comprehensible white box machine
+                    learning technique, called generalized matrix learning vector quantization (GMLVQ), can be employed to create
+                    a sparse, interpretable classification model. The algorithm is provided as plug-in of the popular
+                    <a target="_blank" href="https://www.cs.waikato.ac.nz/ml/weka/">Weka</a> machine learning toolbox.
+                </p>
+
+                <img src="efpred/gmlvq_principle.png" alt="schematic representation of GMLVQ method" style="width: 60%;"/>
+                <p>GMLVQ represents classes of the data (e.g. early folding and late folding) by a small number of prototypes. The
+                    prototype placement allows to identify discriminative features between classes. Furthermore, GMLVQ learns a
+                    linear transformation which potentially increases classification performance and can be used to compute a
+                    classification correlation matrix. This matrix identifies the most influential features as well as crucial
+                    correlations between them. This also allows to identify the most discriminative features for the given classification
+                    problem: Early folding residues are embedded in ordered secondary structure elements and participate
+                    in networks of hydrophobic residues.</p>
+
+                Please find...
+                <div class="flex">
+                    <md-content>
+                        <ul>
+                            <li>the preprint at: <a target="_blank" href="https://www.biorxiv.org/content/early/2018/08/07/381483">bioRxiv</a></li>
+                            <li>the source code at: <a target="_blank" href="https://github.com/JonStargaryen/gmlvq">GitHub</a></li>
+                            <li>information on the Villmann lab: <a target="_blank" href="https://www.cb.hs-mittweida.de/webs/villmann/ci.html">Computional Intelligence Group</a></li>
+                        </ul>
+                    </md-content>
+                    <md-content>
+                        <ul>
+                            <li>the compiled Weka plug-in at: <a target="_blank" href="https://zenodo.org/record/1326272">Zenedo</a></li>
+                            <li>the NGL viewer used for visualization at: <a target="_blank" href="https://github.com/arose/ngl">GitHub</a></li>
+                            <li>information on the Labudde lab: <a target="_blank" href="https://www.bioforscher.de/">BioInformatics Group Mittweida</a></li>
+                        </ul>
+                    </md-content>
+                </div>
+            </div>
+
+            <div class="content-box md-padding" style="margin-bottom: 30px;">
+                <a style="float: right; background-color: #f64c3f; border-color: #cccccc; color: white;" class="btn btn-primary" data-toggle="collapse" href="#terms" role="button" aria-expanded="false" aria-controls="terms">
+                    show terms of service
+                </a>
+                <span style="float: left; padding-top: 6px;"><i class="fa fa-copyright"></i> 2018</span>
+
+                <div class="collapse" id="terms" style="clear: both; padding-top: 12px;">
+                    <div class="card card-body">
+                        <p style="float: right; color: #999999;">Last updated: October 25, 2018</p>
+
+                        <p style="float: left;">Please read these Terms of Service ("Terms", "Terms of Service") carefully before using the https://biosciences.hs-mittweida.de/efpred/ website (the "Service") operated by Early Folding Residue Predictor ("us", "we", or "our").
+                            Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms. These Terms apply to all visitors, users and others who access or use the Service.
+                            By accessing or using the Service you agree to be bound by these Terms. If you disagree with any part of the terms then you may not access the Service. This Terms of Service agreement for Early Folding Residue Predictor is managed by the Terms and Conditions Generator.</p>
+
+                        <h3>Links To Other Web Sites</h3>
+                        <p>Our Service may contain links to third-party web sites or services that are not owned or controlled by Early Folding Residue Predictor.
+                            Early Folding Residue Predictor has no control over, and assumes no responsibility for, the content, privacy policies, or practices of any third party web sites or services. You further acknowledge and agree that Early Folding Residue Predictor shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with use of or reliance on any such content, goods or services available on or through any such web sites or services.
+                            We strongly advise you to read the terms and conditions and privacy policies of any third-party web sites or services that you visit.</p>
+
+                        <h3>Termination</h3>
+                        <p>We may terminate or suspend access to our Service immediately, without prior notice or liability, for any reason whatsoever, including without limitation if you breach the Terms.
+                            All provisions of the Terms which by their nature should survive termination shall survive termination, including, without limitation, ownership provisions, warranty disclaimers, indemnity and limitations of liability.</p>
+
+                        <h3>Governing Law</h3>
+                        <p>These Terms shall be governed and construed in accordance with the laws of Saxony, Germany, without regard to its conflict of law provisions.
+                            Our failure to enforce any right or provision of these Terms will not be considered a waiver of those rights. If any provision of these Terms is held to be invalid or unenforceable by a court, the remaining provisions of these Terms will remain in effect. These Terms constitute the entire agreement between us regarding our Service, and supersede and replace any prior agreements we might have between us regarding the Service.</p>
+
+                        <h3>Changes</h3>
+                        <p>We reserve the right, at our sole discretion, to modify or replace these Terms at any time. If a revision is material we will try to provide at least 30 days notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion.
+                            By continuing to access or use our Service after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, please stop using the Service.</p>
+
+                        <h3>Contact Us</h3>
+                        <p>If you have any questions about these Terms, please <a href="javascript:window.location.href = 'mailto:' + ['bittrich','hs-mittweida.de'].join('@')">contact us</a>.</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -141,7 +205,7 @@
         <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-aria.js"></script>
         <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.5.5/angular-messages.js"></script>
         <script src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
-        <script src="https://ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/angular_material/1.1.0/angular-material.js"></script>
         <script src="efpred/app.js"></script>
         <script src="efpred/ngl.js"></script>
     </body>

@@ -64,6 +64,7 @@
                     console.log('updating view to ' + $scope.chain);
                     $scope.valid = false;
                     $scope.processing = true;
+                    $scope.error = false;
                     ViewService.handleStructureQuery($scope.chain).then(function (response) {
                         $scope.protein = response.data;
                     }, function (response) {
@@ -112,6 +113,7 @@
                     }, 0);
 
                     $scope.processing = false;
+                    $scope.error = false;
                 }
             });
 

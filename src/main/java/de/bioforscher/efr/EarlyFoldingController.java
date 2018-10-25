@@ -5,6 +5,7 @@ import de.bioforscher.jstructure.model.feature.ComputationException;
 import de.bioforscher.jstructure.model.structure.Chain;
 import de.bioforscher.jstructure.model.structure.Structure;
 import de.bioforscher.jstructure.model.structure.StructureParser;
+import de.bioforscher.jstructure.model.structure.selection.SelectionException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.*;
@@ -13,10 +14,8 @@ import javax.annotation.PostConstruct;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.stream.Collectors;
 
 @RestController
@@ -38,14 +37,19 @@ public class EarlyFoldingController {
      */
     private Map<String, List<String>> chainIds;
     private EarlyFoldingClassifier earlyFoldingClassifier;
+    /**
+     * limit number of concurrent jobs
+     */
+    private static final int MAXIMUM_LOAD = 1;
+    private Set<String> locks;
 
     @PostConstruct
     public void activate() {
+        this.locks = new ConcurrentSkipListSet<>();
+
         // specify pdb directory
         this.pdbDirectory = Paths.get("/srv/pdb/data/structures/divided/pdb/");
         StructureParser.OptionalSteps.setLocalPdbDirectory(pdbDirectory);
-
-        //TODO rsync PDB distribution on server
 
         // initialize all chain ids from preprocessed file (mere lines of ids in format: 1acj_A)
         logger.info("initializing chain id list for auto-completion of user input");
@@ -114,6 +118,15 @@ public class EarlyFoldingController {
     }
 
     private Protein processChain(Chain chain) {
+        logger.info("current load: {} / {}",
+                locks.size(),
+                MAXIMUM_LOAD);
+        if(locks.size() >= MAXIMUM_LOAD) {
+            throw new ComputationException("job rejected due to high server load (limit=" + MAXIMUM_LOAD + ") - please wait some time before submitting a new job");
+        }
+
+        String lock = new Object().toString();
+        locks.add(lock);
         EarlyFoldingClassifier.EarlyFoldingClassification earlyFoldingClassification = earlyFoldingClassifier.process(chain);
 
         Protein protein = new Protein(chain,
@@ -123,6 +136,7 @@ public class EarlyFoldingController {
                 protein.getPdbId(),
                 protein.getChainId(),
                 protein.getEarlyFoldingResidues());
+        locks.remove(lock);
         return protein;
     }
 
@@ -135,10 +149,13 @@ public class EarlyFoldingController {
             byte[] uploadedFileContent = Base64.getDecoder().decode(structureData);
             Structure structure = StructureParser.fromInputStream(new ByteArrayInputStream(uploadedFileContent)).parse();
             Chain chain = structure.select().asChain();
+
             return processChain(chain);
         } catch (NullPointerException e) {
             // NPE happens when ProteinIdentifier cannot be set
             throw new ComputationException("no valid file content");
+        } catch (SelectionException e) {
+            throw new ComputationException("structure does not contain amino acids");
         } catch (Exception e) {
             // wrap generic exceptions
             throw new ComputationException(e);
