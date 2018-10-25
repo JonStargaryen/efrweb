@@ -40,7 +40,7 @@ public class EarlyFoldingController {
     /**
      * limit number of concurrent jobs
      */
-    private static final int MAXIMUM_LOAD = 1;
+    private static final int MAXIMUM_LOAD = 10;
     private Set<String> locks;
 
     @PostConstruct
