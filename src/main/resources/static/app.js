@@ -51,7 +51,8 @@
                     if(response.data.exception === 'NullPointerException') {
                         return [];
                     } else {
-                        $scope.errorException = response.data.exception;
+                        console.log(response.data);
+                        $scope.errorException = /*response.data.exception*/'exception';
                         $scope.errorMessage = "failed to autocomplete by server: " + response.data.message;
                         $scope.error = true;
                     }
@@ -68,7 +69,8 @@
                     ViewService.handleStructureQuery($scope.chain).then(function (response) {
                         $scope.protein = response.data;
                     }, function (response) {
-                        $scope.errorException = response.data.exception;
+                        console.log(response.data);
+                        $scope.errorException = /*response.data.exception*/'exception';
                         $scope.errorMessage = response.data.message;
                         $scope.error = true;
                         $scope.processing = false;
@@ -174,7 +176,8 @@
                         ViewService.submitFile(event.target.result).then(function(response) {
                             parentScope.protein = response.data;
                         }, function(response) {
-                            parentScope.errorException = response.data.exception;
+                            console.log(response.data);
+                            parentScope.errorException = /*response.data.exception*/'exception';
                             parentScope.errorMessage = response.data.message;
                             parentScope.error = true;
                             parentScope.processing = false;
